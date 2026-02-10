@@ -36,55 +36,6 @@ Bib ref for complement function:
 }
 
 ```{r}
-visualise.samples <- function(d) {
-  sample.summary <- d %>%
-    filter(
-      Sample != 'Pop.'
-    ) %>%
-    summarise(
-      SDm1 = mean(p) - sd(p),
-      Mean = mean(p),
-      SDp1 = mean(p) + sd(p)
-    )
-
-  d %>%
-    mutate(
-      Sample = factor(
-        Sample,
-        levels = c('Pop.', d$Sample[d$Sample!='Pop.']) %>% rev
-      ),
-      Colour = ifelse(
-        Sample == 'Pop.',
-        'Pop.', 'Sample'
-      )
-    ) %>%
-    ggplot(
-      aes(x = Sample, y = p, colour = Colour, fill = Colour)
-    ) +
-    geom_col() +
-    geom_hline(
-      yintercept = sample.summary$SDm1,
-      size = 1,
-      linetype = 'dotted'
-    ) +
-    geom_hline(
-      yintercept = sample.summary$Mean,
-      size = 1,
-      linetype = 'dashed'
-    ) +
-    geom_hline(
-      yintercept = sample.summary$SDp1,
-      size = 1,
-      linetype = 'dotted'
-    ) +
-    scale_x_discrete('') +
-    scale_y_continuous('', limits = c(0,1), labels = scales::percent) +
-    scale_colour_manual(values = c('Pop.' = 'darkred', 'Sample' = 'darkblue'), guide = 'none') +
-    scale_fill_manual(values = c('Pop.' = 'pink', 'Sample' = 'lightblue'), guide = 'none') +
-    coord_flip() +
-    theme_bw()
-}
-
 complement <- function(x, rho) {
   y <- rnorm(length(x))
   x.perp <- residuals(lm(y ~ x))
@@ -104,10 +55,109 @@ samples <- (1:10) %>%
       mean(take.sample(population, 500, -.05))
     }
   )
+```
+
+```{r}
+justmid <- function(d) {
+  d %>%
+    summarise(
+      Mid = mean(p)
+    )
+}
+
+minmax <- function(d) {
+  d %>%
+    summarise(
+      Low = min(p),
+      High = max(p)
+    )
+}
+
+sdrange <- function(d) {
+  d %>%
+    summarise(
+      Low = mean(p) - sd(p),
+      High = mean(p) + sd(p)
+    )
+}
+
+visualise.samples <- function(
+    d, include.mean = FALSE, 
+    range.function = NULL) {
+  
+  if(include.mean) {
+    d.sample.summary <- d %>%
+      filter(
+        Sample != 'Pop.'
+      ) %>%
+      summarise(Mid = mean(p)) %>%
+      melt(id = NULL, variable.name = 'Statistic', value.name = 'Value')
+  } else {
+    d.sample.summary <- tibble(
+      Statistics = character(), Value = numeric()
+    )
+  }
+
+  if(!is.null(range.function)) {
+    d.sample.summary <- d %>%
+      filter(
+        Sample != 'Pop.'
+      ) %>%
+      range.function %>%
+      melt(id = NULL, variable.name = 'Statistic', value.name = 'Value') %>%
+      rbind(
+        d.sample.summary
+      )
+  }
+  
+  p <- d %>%
+    mutate(
+      Sample = factor(
+        Sample,
+        levels = c(
+          'Pop.', d$Sample[d$Sample!='Pop.']) %>% rev
+      ),
+      Colour = ifelse(
+        Sample == 'Pop.',
+        'Pop.', 'Sample'
+      )
+    ) %>%
+    ggplot(
+      aes(x = Sample, y = p, colour = Colour, fill = Colour)
+    ) +
+    geom_col()
+  
+  if(nrow(d.sample.summary) > 0) {
+    p <- p +
+      geom_hline(
+        aes(yintercept = Value, linetype = Statistic),
+        size = 1,
+        data = d.sample.summary
+      ) +
+      scale_linetype_manual(
+        values = c(
+          Low = 'dotted', Mid = 'dashed', High = 'dotted'), guide = 'none')
+  }
+  
+  p +
+    scale_x_discrete(
+      '') +
+    scale_y_continuous(
+      '', limits = c(0,1), labels = scales::percent) +
+    scale_colour_manual(
+      values = c(
+        'Pop.' = 'darkred', 'Sample' = 'darkblue'), guide = 'none') +
+    scale_fill_manual(
+      values = c(
+        'Pop.' = 'pink', 'Sample' = 'lightblue'), guide = 'none') +
+    coord_flip() +
+    theme_bw()
+}
 
 tibble(
   Sample = c('Pop.', 1:length(samples)), 
   p = c(mean(population), samples)
   ) %>%
-  visualise.samples
+  visualise.samples(include.mean = TRUE, range.function = sdrange)
 ```
+
