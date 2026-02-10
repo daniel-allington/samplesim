@@ -11,59 +11,36 @@ In this Rmd file, we develop and test basic bits of code.
 knitr::opts_chunk$set(echo = FALSE)
 
 library(dplyr)
-library(MASS)
 library(purrr)
 ```
 
 ```{r}
 population.p <- .5
-population.size <- 10000
-data.defect.correlation <- 0.1
+population.N <- 10000
 
-# Variance covariance matrix
-matrix.row <- c(1, data.defect.correlation)
-sigma <- matrix(
-  c(matrix.row, rev(matrix.row)),
-  nrow = 2, ncol = 2,
-  byrow = TRUE)
-
-population <- mvrnorm(n = population.size, mu = rep(0, 2), Sigma = sigma) %>%
-  data.frame %>%
-  setNames(c('Value', 'Sampling_prob')) 
+population <- c(rep(1, population.N * population.p), rep(0, population.N * (1 - population.p)))
 ```
 
-population <- population %>%
-  mutate(
-    Value = as.numeric(Value < quantile(population$Value, population.p)), # Is greater than p of the population
-  )
-
 ```{r}
-take.sample <- function(d, n) {
-  sample.proportion <- n / nrow(d)
-  d$Sampling_prob <- ecdf(d$Sampling_prob)(d$Sampling_prob) * sample.proportion * 2
-  d$random <- runif(n = nrow(d))
-  d %>%
-    filter(random < Sampling_prob)
+take.sample <- function(x, n) {
+  proportion.to.sample <- n / length(x)
+  y <- rnorm(n = n)
+  sampling.p <- ecdf(y)(y) * proportion.to.sample * 2
+  x[runif(n = length(x)) < sampling.p]
 }
 
-sample.size <- 1000
-
-d.results <- (1:1000) %>%
+(1:1000) %>%
   map(
-    ~ summarise(
-      take.sample(population, sample.size),
-      n = n(),
-      p = mean(Value),
-      prob = mean(Sampling_prob)
-      )
+    function(x) {
+      x <- take.sample(population, 1000)
+      tibble(n = length(x), p = mean(x))
+    }
   ) %>%
-  reduce(rbind)
-
-d.results %>%
+  reduce(rbind) %>%
   summarise(
     n = mean(n),
-    Low = round(quantile(p, .025), digits = 3),
-    Est. = round(mean(p), digits = 3),
-    High = round(quantile(p, .975), digits = 3)
+    Low = quantile(p, .025),
+    Est. = mean(p),
+    High = quantile(p, .975)
   )
 ```
