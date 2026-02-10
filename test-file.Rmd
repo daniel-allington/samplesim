@@ -37,6 +37,16 @@ Bib ref for complement function:
 
 ```{r}
 visualise.samples <- function(d) {
+  sample.summary <- d %>%
+    filter(
+      Sample != 'Pop.'
+    ) %>%
+    summarise(
+      SDm1 = mean(p) - sd(p),
+      Mean = mean(p),
+      SDp1 = mean(p) + sd(p)
+    )
+
   d %>%
     mutate(
       Sample = factor(
@@ -49,12 +59,28 @@ visualise.samples <- function(d) {
       )
     ) %>%
     ggplot(
-      aes(x = Sample, y = p, fill = Colour)
+      aes(x = Sample, y = p, colour = Colour, fill = Colour)
     ) +
     geom_col() +
+    geom_hline(
+      yintercept = sample.summary$SDm1,
+      size = 1,
+      linetype = 'dotted'
+    ) +
+    geom_hline(
+      yintercept = sample.summary$Mean,
+      size = 1,
+      linetype = 'dashed'
+    ) +
+    geom_hline(
+      yintercept = sample.summary$SDp1,
+      size = 1,
+      linetype = 'dotted'
+    ) +
     scale_x_discrete('') +
     scale_y_continuous('', limits = c(0,1), labels = scales::percent) +
-    scale_fill_manual(values = c('Pop.' = 'red', 'Sample' = 'darkblue'), guide = 'none') +
+    scale_colour_manual(values = c('Pop.' = 'darkred', 'Sample' = 'darkblue'), guide = 'none') +
+    scale_fill_manual(values = c('Pop.' = 'pink', 'Sample' = 'lightblue'), guide = 'none') +
     coord_flip() +
     theme_bw()
 }
@@ -75,7 +101,7 @@ take.sample <- function(x, n, data.defect.correlation) {
 samples <- (1:10) %>%
   map_dbl(
     function(x) {
-      mean(take.sample(population, 1000, -0.1))
+      mean(take.sample(population, 500, -.05))
     }
   )
 
