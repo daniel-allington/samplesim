@@ -18,13 +18,32 @@ library(purrr)
 population.p <- .5
 population.N <- 10000
 
-population <- c(rep(1, population.N * population.p), rep(0, population.N * (1 - population.p)))
+population <- c(
+  rep(1, population.N * population.p), 
+  rep(0, population.N * (1 - population.p)))
 ```
 
+Bib ref for complement function:
+
+@MISC {313138,
+    TITLE = {Generate a random variable with a defined correlation to an existing variable(s)},
+    AUTHOR = {whuber (https://stats.stackexchange.com/users/919/whuber)},
+    HOWPUBLISHED = {Cross Validated},
+    NOTE = {URL:https://stats.stackexchange.com/q/313138 (version: 2021-01-14)},
+    EPRINT = {https://stats.stackexchange.com/q/313138},
+    URL = {https://stats.stackexchange.com/q/313138}
+}
+
 ```{r}
-take.sample <- function(x, n) {
+complement <- function(x, rho) {
+  y <- rnorm(length(x))
+  x.perp <- residuals(lm(y ~ x))
+  rho * sd(x.perp) * x + x.perp * sd(y) * sqrt(1 - rho^2)
+}
+
+take.sample <- function(x, n, data.defect.correlation) {
   proportion.to.sample <- n / length(x)
-  y <- rnorm(n = n)
+  y <- complement(x, data.defect.correlation * 2)
   sampling.p <- ecdf(y)(y) * proportion.to.sample * 2
   x[runif(n = length(x)) < sampling.p]
 }
@@ -32,7 +51,7 @@ take.sample <- function(x, n) {
 (1:1000) %>%
   map(
     function(x) {
-      x <- take.sample(population, 1000)
+      x <- take.sample(population, 1000, 0.00)
       tibble(n = length(x), p = mean(x))
     }
   ) %>%
