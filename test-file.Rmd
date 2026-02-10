@@ -10,9 +10,47 @@ In this Rmd file, we develop and test basic bits of code.
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 
-
+library(dplyr)
+library(MASS)
 ```
 
 ```{r}
+population.p <- .5
+population.size <- 10000
+data.defect.correlation <- 0
 
+# Variance covariance matrix
+matrix.row <- c(1, data.defect.correlation)
+sigma <- matrix(
+  c(matrix.row, rev(matrix.row)),
+  nrow = 2, ncol = 2,
+  byrow = TRUE)
+
+population <- mvrnorm(n = sample.size, mu = rep(0, 2), Sigma = sigma) %>%
+  data.frame %>%
+  setNames(c('Value', 'Sampling_prob')) 
+
+population <- population %>%
+  mutate(
+    Value = as.numeric(Value > quantile(population$Value, population.p)), # Is greater than p of the population
+  )
+```
+
+```{r}
+take.sample <- function(d, n) {
+  # d$Sampling_prob <- d$Sampling_prob / (nrow(d) / n)
+  random <- rnorm(n = nrow(d))
+  d[random <= d$Sampling_prob,]
+}
+
+sample.size <- 1000
+
+d <- population %>%
+  take.sample(sample.size)
+
+d %>%
+  summarise(
+    n = n(),
+    p = mean(Value)
+  )
 ```
