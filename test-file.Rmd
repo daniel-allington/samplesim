@@ -1,0 +1,18 @@
+---
+title: "Test Rmd File"
+author: "Daniel Allington"
+date: "2026-02-10"
+output: html_document
+---
+
+In this Rmd file, we develop and test basic bits of code.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+
+```
+
+```{r}
+
+```
