@@ -12,12 +12,13 @@ knitr::opts_chunk$set(echo = FALSE)
 
 library(dplyr)
 library(MASS)
+library(purrr)
 ```
 
 ```{r}
 population.p <- .5
 population.size <- 10000
-data.defect.correlation <- 0
+data.defect.correlation <- 0.1
 
 # Variance covariance matrix
 matrix.row <- c(1, data.defect.correlation)
@@ -26,31 +27,43 @@ sigma <- matrix(
   nrow = 2, ncol = 2,
   byrow = TRUE)
 
-population <- mvrnorm(n = sample.size, mu = rep(0, 2), Sigma = sigma) %>%
+population <- mvrnorm(n = population.size, mu = rep(0, 2), Sigma = sigma) %>%
   data.frame %>%
   setNames(c('Value', 'Sampling_prob')) 
+```
 
 population <- population %>%
   mutate(
-    Value = as.numeric(Value > quantile(population$Value, population.p)), # Is greater than p of the population
+    Value = as.numeric(Value < quantile(population$Value, population.p)), # Is greater than p of the population
   )
-```
 
 ```{r}
 take.sample <- function(d, n) {
-  # d$Sampling_prob <- d$Sampling_prob / (nrow(d) / n)
-  random <- rnorm(n = nrow(d))
-  d[random <= d$Sampling_prob,]
+  sample.proportion <- n / nrow(d)
+  d$Sampling_prob <- ecdf(d$Sampling_prob)(d$Sampling_prob) * sample.proportion * 2
+  d$random <- runif(n = nrow(d))
+  d %>%
+    filter(random < Sampling_prob)
 }
 
 sample.size <- 1000
 
-d <- population %>%
-  take.sample(sample.size)
+d.results <- (1:1000) %>%
+  map(
+    ~ summarise(
+      take.sample(population, sample.size),
+      n = n(),
+      p = mean(Value),
+      prob = mean(Sampling_prob)
+      )
+  ) %>%
+  reduce(rbind)
 
-d %>%
+d.results %>%
   summarise(
-    n = n(),
-    p = mean(Value)
+    n = mean(n),
+    Low = round(quantile(p, .025), digits = 3),
+    Est. = round(mean(p), digits = 3),
+    High = round(quantile(p, .975), digits = 3)
   )
 ```
