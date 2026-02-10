@@ -39,14 +39,22 @@ Bib ref for complement function:
 visualise.samples <- function(d) {
   d %>%
     mutate(
-      n = factor(n, levels = sample(n, replace = FALSE))
+      Sample = factor(
+        Sample,
+        levels = c('Pop.', d$Sample[d$Sample!='Pop.']) %>% rev
+      ),
+      Colour = ifelse(
+        Sample == 'Pop.',
+        'Pop.', 'Sample'
+      )
     ) %>%
     ggplot(
-      aes(x = n, y = p)
+      aes(x = Sample, y = p, fill = Colour)
     ) +
     geom_col() +
     scale_x_discrete('') +
-    scale_y_continuous(limits = c(0,1), labels = scales::percent) +
+    scale_y_continuous('', limits = c(0,1), labels = scales::percent) +
+    scale_fill_manual(values = c('Pop.' = 'red', 'Sample' = 'darkblue'), guide = 'none') +
     coord_flip() +
     theme_bw()
 }
@@ -61,19 +69,19 @@ take.sample <- function(x, n, data.defect.correlation) {
   proportion.to.sample <- n / length(x)
   y <- complement(x, data.defect.correlation * 2)
   sampling.p <- ecdf(y)(y) * proportion.to.sample * 2
-  x[runif(n = length(x)) < sampling.p]
+  sample(x, size = n, replace = FALSE, prob = sampling.p)
 }
 
-(1:10) %>%
-  map(
+samples <- (1:10) %>%
+  map_dbl(
     function(x) {
-      x <- take.sample(population, 1000, 0)
-      tibble(n = as.character(length(x)), p = mean(x))
+      mean(take.sample(population, 1000, -0.1))
     }
+  )
+
+tibble(
+  Sample = c('Pop.', 1:length(samples)), 
+  p = c(mean(population), samples)
   ) %>%
-  reduce(rbind) %>%
-  rbind(
-    tibble(n = 'Pop.', p = mean(population))
-    ) %>%
   visualise.samples
 ```
