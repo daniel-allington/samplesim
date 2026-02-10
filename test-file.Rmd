@@ -12,6 +12,7 @@ knitr::opts_chunk$set(echo = FALSE)
 
 library(dplyr)
 library(purrr)
+library(reshape2)
 library(ggplot2)
 ```
 
@@ -131,7 +132,7 @@ visualise.samples <- function(
     p <- p +
       geom_hline(
         aes(yintercept = Value, linetype = Statistic),
-        size = 1,
+        linewidth = 1,
         data = d.sample.summary
       ) +
       scale_linetype_manual(
