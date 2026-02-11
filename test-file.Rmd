@@ -95,7 +95,9 @@ sdrange <- function(d) {
 }
 
 visualise.samples <- function(
-    d, include.mean = FALSE, 
+    d, 
+    include.mean = FALSE, 
+    population.line = FALSE,
     range.function = NULL,
     confint = NULL) {
   
@@ -143,6 +145,16 @@ visualise.samples <- function(
     ) +
     geom_col()
   
+  if(population.line) {
+    p <- p +
+      geom_hline(
+        yintercept = d$p[d$Sample=='Pop.'],
+        linetype = 'dashed',
+        linewidth = 1,
+        colour = 'darkred'
+      )
+  }
+  
   if(!is.null(confint)) {
     p <- p +
       geom_errorbar(
@@ -164,7 +176,7 @@ visualise.samples <- function(
       ) +
       scale_linetype_manual(
         values = c(
-          Low = 'dotted', Mid = 'dashed', High = 'dotted'), guide = 'none')
+          Low = 'dotted', Mid = 'dotdash', High = 'dotted'), guide = 'none')
   }
   
   p +
@@ -187,6 +199,7 @@ tibble(
   n = c(NA, rep(sample.size, length(samples))),
   p = c(mean(population), samples)
   ) %>%
-  visualise.samples(include.mean = TRUE, range.function = sdrange, confint = .95)
+  visualise.samples(
+    include.mean = TRUE, population.line = TRUE, range.function = sdrange, confint = .95)
 ```
 
