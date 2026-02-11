@@ -2,6 +2,7 @@ source('function-definitions.R')
 
 library(shiny)
 
+# Define user interface
 ui <- fluidPage(
 
     titlePanel('Survey Simulator'),
@@ -46,6 +47,9 @@ ui <- fluidPage(
               'confint',
               'Confidence interval',
               choices = list(None = 'None', '90%' = '.90', '95%' = '.95', '99%' = '.99')
+            ),
+            submitButton(
+              'Collect data from 10 samples'
             )
             ),
         # Plot the results
@@ -56,7 +60,7 @@ ui <- fluidPage(
     )
 
 
-# Define server logic required to draw a histogram
+# Define server logic
 server <- function(input, output) {
   
     output$samplePlot <- renderPlot({
