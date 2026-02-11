@@ -33,7 +33,10 @@ ui <- fluidPage(
                         min = -.5,
                         max = .5,
                         value = 0,
-                        step = .05)
+                        step = .05),
+            # 
+            checkboxInput('population.line', 'Population comparison', FALSE),
+            checkboxInput('include.mean', 'Mean of samples', FALSE)
             ),
         # Plot the results
         mainPanel(
@@ -68,14 +71,19 @@ server <- function(input, output) {
           n = c(NA, rep(input$sample.n, length(samples))),
           p = c(mean(population), samples)
         ) %>%
-          visualise.samples
+          visualise.samples(
+            population.line = input$population.line,
+            include.mean = input$include.mean
+          )
         } else {
           tibble(
             Sample = c('Pop.', 1:10), 
             n = NA, 
             p = c(mean(population), rep(NA, 10))
           ) %>% 
-            visualise.samples
+            visualise.samples(
+              population.line = input$population.line
+            )
       }
         
       }
