@@ -1,25 +1,40 @@
+source('function-definitions.R')
+
 library(shiny)
 
 ui <- fluidPage(
 
     titlePanel('Survey Simulator'),
 
-    # Input population size 
     sidebarLayout(
         sidebarPanel(
-            sliderInput("pop.size",
-                        "Population size:",
-                        min = 1e4,
+            # Input population size
+            sliderInput('pop.n',
+                        'Population size:',
+                        min = 0,
                         max = 1e6,
-                        value = 1e4)
-        ),
-
+                        value = 1e4),
+            # Input population agreement
+            sliderInput('pop.p',
+                        'Population proportion:',
+                        min = 0,
+                        max = 100,
+                        value = 50,
+                        post = ' %'),
+            # Input sample size
+            sliderInput('sample.n',
+                        'Sample size:',
+                        min = 0,
+                        max = 5e3,
+                        value = 1e3)
+            ),
         # Show a plot of the generated distribution
         mainPanel(
-           plotOutput("distPlot")
+          plotOutput('distPlot')
+        )
         )
     )
-)
+
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
