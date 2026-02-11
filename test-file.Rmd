@@ -17,7 +17,7 @@ library(ggplot2)
 ```
 
 ```{r}
-population.p <- .5
+population.p <- .1
 population.N <- 10000
 
 population <- c(
@@ -37,6 +37,8 @@ Bib ref for complement function:
 }
 
 ```{r}
+sample.size <- 1000
+
 complement <- function(x, rho) {
   y <- rnorm(length(x))
   x.perp <- residuals(lm(y ~ x))
@@ -53,12 +55,22 @@ take.sample <- function(x, n, data.defect.correlation) {
 samples <- (1:10) %>%
   map_dbl(
     function(x) {
-      mean(take.sample(population, 500, -.05))
+      mean(take.sample(population, sample.size, 0.15))
     }
   )
 ```
 
 ```{r}
+prop.ci <- function(p, n, conf.level) {
+  conf.level <- conf.level %>% as.character
+  critical.values <- c('0.90' = 1.645, '0.95' = 1.96, '0.99' = 2.575)
+  if(!conf.level %in% names(critical.values)) {
+    stop(paste('Acceptable confidence levels:', paste(names(critical.values), collapse = ', ')))
+  }
+  moe <- critical.values[conf.level] * sqrt(p * (1 - p) / n)
+  tibble(Low = p - moe, High = p + moe)
+}
+
 justmid <- function(d) {
   d %>%
     summarise(
@@ -84,7 +96,21 @@ sdrange <- function(d) {
 
 visualise.samples <- function(
     d, include.mean = FALSE, 
-    range.function = NULL) {
+    range.function = NULL,
+    confint = NULL) {
+  
+  d <- d %>%
+    mutate(
+      Sample = factor(
+        Sample,
+        levels = c(
+          'Pop.', d$Sample[d$Sample!='Pop.']) %>% rev
+      ),
+      Colour = ifelse(
+        Sample == 'Pop.',
+        'Pop.', 'Sample'
+      )
+    )
   
   if(include.mean) {
     d.sample.summary <- d %>%
@@ -112,21 +138,22 @@ visualise.samples <- function(
   }
   
   p <- d %>%
-    mutate(
-      Sample = factor(
-        Sample,
-        levels = c(
-          'Pop.', d$Sample[d$Sample!='Pop.']) %>% rev
-      ),
-      Colour = ifelse(
-        Sample == 'Pop.',
-        'Pop.', 'Sample'
-      )
-    ) %>%
     ggplot(
       aes(x = Sample, y = p, colour = Colour, fill = Colour)
     ) +
     geom_col()
+  
+  if(!is.null(confint)) {
+    p <- p +
+      geom_errorbar(
+        aes(
+          ymin = Low,
+          ymax = High
+        ),
+        data = tibble(d, prop.ci(d$p, d$n, confint)),
+        width = 0.25
+      )
+  }
   
   if(nrow(d.sample.summary) > 0) {
     p <- p +
@@ -157,8 +184,9 @@ visualise.samples <- function(
 
 tibble(
   Sample = c('Pop.', 1:length(samples)), 
+  n = c(NA, rep(sample.size, length(samples))),
   p = c(mean(population), samples)
   ) %>%
-  visualise.samples(include.mean = TRUE, range.function = sdrange)
+  visualise.samples(include.mean = TRUE, range.function = sdrange, confint = .95)
 ```
 
