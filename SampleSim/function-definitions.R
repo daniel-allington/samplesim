@@ -51,8 +51,8 @@ sdrange <- function(d) {
 
 visualise.samples <- function(
     d, 
-    include.mean = FALSE, 
     population.line = FALSE,
+    include.mean = FALSE, 
     range.function = NULL,
     confint = NULL) {
   
