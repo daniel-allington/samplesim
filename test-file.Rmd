@@ -17,50 +17,6 @@ library(ggplot2)
 ```
 
 ```{r}
-population.p <- .1
-population.N <- 10000
-
-population <- c(
-  rep(1, population.N * population.p), 
-  rep(0, population.N * (1 - population.p)))
-```
-
-Bib ref for complement function:
-
-@MISC {313138,
-    TITLE = {Generate a random variable with a defined correlation to an existing variable(s)},
-    AUTHOR = {whuber (https://stats.stackexchange.com/users/919/whuber)},
-    HOWPUBLISHED = {Cross Validated},
-    NOTE = {URL:https://stats.stackexchange.com/q/313138 (version: 2021-01-14)},
-    EPRINT = {https://stats.stackexchange.com/q/313138},
-    URL = {https://stats.stackexchange.com/q/313138}
-}
-
-```{r}
-sample.size <- 1000
-
-complement <- function(x, rho) {
-  y <- rnorm(length(x))
-  x.perp <- residuals(lm(y ~ x))
-  rho * sd(x.perp) * x + x.perp * sd(y) * sqrt(1 - rho^2)
-}
-
-take.sample <- function(x, n, data.defect.correlation) {
-  proportion.to.sample <- n / length(x)
-  y <- complement(x, data.defect.correlation * 2)
-  sampling.p <- ecdf(y)(y) * proportion.to.sample * 2
-  sample(x, size = n, replace = FALSE, prob = sampling.p)
-}
-
-samples <- (1:10) %>%
-  map_dbl(
-    function(x) {
-      mean(take.sample(population, sample.size, 0.15))
-    }
-  )
-```
-
-```{r}
 prop.ci <- function(p, n, conf.level) {
   conf.level <- conf.level %>% as.character
   critical.values <- c('0.90' = 1.645, '0.95' = 1.96, '0.99' = 2.575)
@@ -193,7 +149,64 @@ visualise.samples <- function(
     coord_flip() +
     theme_bw()
 }
+```
 
+Bib ref for complement function:
+
+@MISC {313138,
+    TITLE = {Generate a random variable with a defined correlation to an existing variable(s)},
+    AUTHOR = {whuber (https://stats.stackexchange.com/users/919/whuber)},
+    HOWPUBLISHED = {Cross Validated},
+    NOTE = {URL:https://stats.stackexchange.com/q/313138 (version: 2021-01-14)},
+    EPRINT = {https://stats.stackexchange.com/q/313138},
+    URL = {https://stats.stackexchange.com/q/313138}
+}
+
+# Generating population
+```{r}
+population.p <- .1
+population.N <- 10000
+
+population <- c(
+  rep(1, population.N * population.p), 
+  rep(0, population.N * (1 - population.p)))
+```
+
+```{r, warning=FALSE}
+tibble(
+  Sample = c('Pop.', 1:10), 
+  n = NA, 
+  p = c(mean(population), rep(NA, 10))
+  ) %>% 
+  visualise.samples
+```
+
+# Collecting samples
+```{r}
+sample.size <- 1000
+
+complement <- function(x, rho) {
+  y <- rnorm(length(x))
+  x.perp <- residuals(lm(y ~ x))
+  rho * sd(x.perp) * x + x.perp * sd(y) * sqrt(1 - rho^2)
+}
+
+take.sample <- function(x, n, data.defect.correlation) {
+  proportion.to.sample <- n / length(x)
+  y <- complement(x, data.defect.correlation * 2)
+  sampling.p <- ecdf(y)(y) * proportion.to.sample * 2
+  sample(x, size = n, replace = FALSE, prob = sampling.p)
+}
+
+samples <- (1:10) %>%
+  map_dbl(
+    function(x) {
+      mean(take.sample(population, sample.size, 0.15))
+    }
+  )
+```
+
+```{r}
 tibble(
   Sample = c('Pop.', 1:length(samples)), 
   n = c(NA, rep(sample.size, length(samples))),
