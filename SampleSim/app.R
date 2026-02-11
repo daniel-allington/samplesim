@@ -36,7 +36,12 @@ ui <- fluidPage(
                         step = .05),
             # 
             checkboxInput('population.line', 'Population comparison', FALSE),
-            checkboxInput('include.mean', 'Mean of samples', FALSE)
+            checkboxInput('include.mean', 'Mean of samples', FALSE),
+            radioButtons(
+              'confint',
+              'Confidence interval for samples',
+              choices = list('None', '.90', '.95', '.99')
+            )
             ),
         # Plot the results
         mainPanel(
@@ -52,7 +57,11 @@ server <- function(input, output) {
     output$samplePlot <- renderPlot({
       
       true.p <- input$population.p / 100
-      print(input$ddc)
+      if(input$confint == 'None') {
+        confint <- NULL
+      } else {
+        confint <- as.numeric(input$confint)
+      }
       
       population <- c(
         rep(1, input$population.N * true.p), 
@@ -62,7 +71,11 @@ server <- function(input, output) {
         samples <- (1:10) %>%
           map_dbl(
             function(x) {
-              mean(take.sample(population, input$sample.n, data.defect.correlation = input$ddc))
+              mean(
+                take.sample(
+                  population, 
+                  input$sample.n, 
+                  data.defect.correlation = input$ddc))
             }
           )
         
@@ -73,7 +86,8 @@ server <- function(input, output) {
         ) %>%
           visualise.samples(
             population.line = input$population.line,
-            include.mean = input$include.mean
+            include.mean = input$include.mean,
+            confint = confint
           )
         } else {
           tibble(
