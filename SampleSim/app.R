@@ -38,9 +38,14 @@ ui <- fluidPage(
             checkboxInput('population.line', 'Population comparison', FALSE),
             checkboxInput('include.mean', 'Mean of samples', FALSE),
             radioButtons(
+              'range.function',
+              'Range function',
+              choices = list('None', 'Minimum-maximum', 'Standard deviation')
+            ),
+            radioButtons(
               'confint',
-              'Confidence interval for samples',
-              choices = list('None', '.90', '.95', '.99')
+              'Confidence interval',
+              choices = list(None = 'None', '90%' = '.90', '95%' = '.95', '99%' = '.99')
             )
             ),
         # Plot the results
@@ -57,6 +62,15 @@ server <- function(input, output) {
     output$samplePlot <- renderPlot({
       
       true.p <- input$population.p / 100
+      
+      if(input$range.function == 'None') {
+        range.function = NULL
+      } else if(input$range.function == 'Minimum-maximum') {
+        range.function = minmax
+      } else if(input$range.function == 'Standard deviation') {
+        range.function = sdrange
+      }
+      
       if(input$confint == 'None') {
         confint <- NULL
       } else {
@@ -87,6 +101,7 @@ server <- function(input, output) {
           visualise.samples(
             population.line = input$population.line,
             include.mean = input$include.mean,
+            range.function = range.function,
             confint = confint
           )
         } else {
