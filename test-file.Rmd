@@ -19,7 +19,7 @@ library(ggplot2)
 ```{r}
 prop.ci <- function(p, n, conf.level) {
   conf.level <- conf.level %>% as.character
-  critical.values <- c('0.90' = 1.645, '0.95' = 1.96, '0.99' = 2.575)
+  critical.values <- c('0.9' = 1.645, '0.95' = 1.96, '0.99' = 2.575)
   if(!conf.level %in% names(critical.values)) {
     stop(paste('Acceptable confidence levels:', paste(names(critical.values), collapse = ', ')))
   }
@@ -213,6 +213,6 @@ tibble(
   p = c(mean(population), samples)
   ) %>%
   visualise.samples(
-    include.mean = TRUE, population.line = TRUE, range.function = sdrange, confint = .95)
+    include.mean = TRUE, population.line = TRUE, range.function = sdrange, confint = .90)
 ```
 
