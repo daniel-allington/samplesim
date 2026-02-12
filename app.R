@@ -2,93 +2,87 @@ source('function-definitions.R')
 
 library(shiny)
 
-# Define user interface
 ui <- fluidPage(
-
-    titlePanel('Survey Simulator'),
-
-    sidebarLayout(
-        sidebarPanel(
-            # Input population size
-            sliderInput('population.N',
-                        'Population size:',
-                        min = 1e4,
-                        max = 1e5,
-                        value = 1e4,
-                        step = 1000),
-            # Input population agreement
-            sliderInput('population.p',
-                        'Population proportion:',
-                        min = 0,
-                        max = 100,
-                        value = 50,
-                        step = 2.5,
-                        post = ' %'),
-            # Input sample size
-            sliderInput('sample.n',
-                        'Sample size:',
-                        min = 0,
-                        max = 5e3,
-                        value = 0,
-                        step = 25),
-            # Input data defect correlation
-            sliderInput('ddc',
-                        'Data defect correlation:',
-                        min = -.5,
-                        max = .5,
-                        value = 0,
-                        step = .025),
-            # 
-            checkboxInput('population.line', 'Population comparison', FALSE),
-            checkboxInput('include.mean', 'Mean of samples', FALSE),
-            radioButtons(
-              'range.function',
-              'Range function',
-              choices = list('None', 'Minimum-maximum', 'Standard deviation')
-            ),
-            radioButtons(
-              'confint',
-              'Confidence interval',
-              choices = list(None = 'None', '90%' = '.90', '95%' = '.95', '99%' = '.99')
-            ),
-            submitButton(
-              'Collect data from 10 samples'
-            )
-            ),
-        # Plot the results
-        mainPanel(
-          plotOutput('samplePlot')
-        )
-        )
+  
+  titlePanel('Sampling Simulator'),
+  
+  sidebarLayout(
+    sidebarPanel(
+      sliderInput('population.N',
+                  'Population size:',
+                  min = 1e4,
+                  max = 1e5,
+                  value = 1e4,
+                  step = 1000),
+      sliderInput('population.p',
+                  'Population proportion:',
+                  min = 0,
+                  max = 100,
+                  value = 50,
+                  step = 2.5,
+                  post = ' %'),
+      sliderInput('sample.n',
+                  'Sample size:',
+                  min = 50,
+                  max = 5e3,
+                  value = 0,
+                  step = 25),
+      sliderInput('ddc',
+                  'Data defect correlation:',
+                  min = -.5,
+                  max = .5,
+                  value = 0,
+                  step = .025),
+      checkboxInput('include.mean', 'Mean of samples', FALSE),
+      radioButtons(
+        'range.function',
+        'Range function',
+        choices = list('None', 'Minimum-maximum', 'Standard deviation')
+      ),
+      radioButtons(
+        'confint',
+        'Confidence interval',
+        choices = list(None = 'None', '90%' = '.90', '95%' = '.95', '99%' = '.99')
+      ),
+      actionButton(
+        'collect',
+        'Collect data from 10 samples'
+      )
+    ),
+    # Plot the results
+    mainPanel(
+      plotOutput('samplePlot')
     )
+  )
+)
 
-
-# Define server logic
 server <- function(input, output) {
   
-    output$samplePlot <- renderPlot({
-      
-      true.p <- input$population.p / 100
-      
-      if(input$range.function == 'None') {
-        range.function = NULL
-      } else if(input$range.function == 'Minimum-maximum') {
-        range.function = minmax
-      } else if(input$range.function == 'Standard deviation') {
-        range.function = sdrange
-      }
-      
-      if(input$confint == 'None') {
-        confint <- NULL
-      } else {
-        confint <- as.numeric(input$confint)
-      }
-      
-      population <- c(
-        rep(1, input$population.N * true.p), 
-        rep(0, input$population.N * (1 - true.p)))
-      
-      if(input$sample.n > 0) {
+  output$samplePlot <- renderPlot({
+    
+    true.p <- input$population.p / 100
+    
+    if(input$range.function == 'None') {
+      range.function = NULL
+    } else if(input$range.function == 'Minimum-maximum') {
+      range.function = minmax
+    } else if(input$range.function == 'Standard deviation') {
+      range.function = sdrange
+    }
+    
+    if(input$confint == 'None') {
+      confint <- NULL
+    } else {
+      confint <- as.numeric(input$confint)
+    }
+    
+    population <- c(
+      rep(1, input$population.N * true.p), 
+      rep(0, input$population.N * (1 - true.p)))
+    
+    random.samples <- eventReactive(
+      input$collect,
+      {
         samples <- (1:10) %>%
           map_dbl(
             function(x) {
@@ -99,31 +93,23 @@ server <- function(input, output) {
                   data.defect.correlation = input$ddc))
             }
           )
-        
         tibble(
           Sample = c('Pop.', 1:length(samples)), 
           n = c(NA, rep(input$sample.n, length(samples))),
           p = c(mean(population), samples)
-        ) %>%
-          visualise.samples(
-            population.line = input$population.line,
-            include.mean = input$include.mean,
-            range.function = range.function,
-            confint = confint
-          )
-        } else {
-          tibble(
-            Sample = c('Pop.', 1:10), 
-            n = NA, 
-            p = c(mean(population), rep(NA, 10))
-          ) %>% 
-            visualise.samples(
-              population.line = input$population.line
-            )
-      }
-        
+        )
       }
     )
+    
+    random.samples() %>%
+      visualise.samples(
+        include.mean = input$include.mean,
+        range.function = range.function,
+        confint = confint
+      )
+    
+  }
+  )
 }
 
 # Run the application 
