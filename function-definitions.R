@@ -9,10 +9,19 @@ complement <- function(x, rho) {
   rho * sd(x.perp) * x + x.perp * sd(y) * sqrt(1 - rho^2)
 }
 
+scale <- function(x) {
+  (x-min(x))/(max(x)-min(x))
+}
+
 take.sample <- function(x, n, data.defect.correlation) {
+  if(data.defect.correlation==0) {
+    return(sample(x, size = n, replace = FALSE))
+  }
   proportion.to.sample <- n / length(x)
-  y <- complement(x, data.defect.correlation * 2)
-  sampling.p <- ecdf(y)(y) * proportion.to.sample * 2
+  sampling.p <- scale(
+    complement(x, data.defect.correlation * 2)
+    ) # complement produces roughly half the desired correlation within the range -.25 to .25 (increasingly exceeds it once beyond that)
+   # print(cor(x, sampling.p)) Uncomment to test
   sample(x, size = n, replace = FALSE, prob = sampling.p)
 }
 
